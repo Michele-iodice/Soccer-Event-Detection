@@ -6,22 +6,25 @@ from tensorflow import keras
 from keras import layers
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
 
 
 def load_images_from_folder(folder, width, height):
     data = []
     target = []
-    for class_label in ["Event", "Soccer"]:
-        class_path = os.path.join(folder, class_label)
-        if os.path.isdir(class_path):
-            for img_filename in os.listdir(class_path):
-                img_path = os.path.join(class_path, img_filename)
-                img = cv2.imread(img_path)
-                img = cv2.resize(img, (width, height))
+    for class_label in os.listdir(folder):
+        if class_label not in ["Red-Cards", "Yellow-Cards"]:
+            class_path = os.path.join(folder, class_label)
+            if os.path.isdir(class_path):
+                for img_filename in os.listdir(class_path):
+                    img_path = os.path.join(class_path, img_filename)
+                    img = cv2.imread(img_path)
+                    img = cv2.resize(img, (width, height))
 
-                # Aggiungi le immagini e le etichette
-                data.append(img)
-                target.append(class_label)
+                    # Aggiungi le immagini e le etichette
+                    data.append(img)
+                    target.append(class_label)
 
     return np.array(data), np.array(target)
 
@@ -120,34 +123,30 @@ vae.compile(optimizer='adam', loss=vae_loss, metrics=['loss'])
 # Display the model summary
 vae.summary()
 
-# Train the VAE model with your data
-# percorso della cartella del dataset
-folder_path = "/percorso/della/tua/cartella"
-# Carica le immagini e le etichette
-images, labels = load_images_from_folder(folder_path, 128, 128)
-
-
-
-# Assuming 'images' is a list or array of image data, and 'labels' are corresponding labels
-images_train, images_temp, labels_train, labels_temp = train_test_split(images, labels, test_size=0.4, random_state=42)
-images_val, images_test, labels_val, labels_test = train_test_split(images_temp, labels_temp, test_size=0.5, random_state=42)
-
-# Now, images_train, labels_train are the training data, images_val, labels_val are the validation data, and images_test, labels_test are the test data
-
-
+# hyperParameter
 epochs = 10
 batch_size = 64
-x_train=None
-x_val=None
-x_test=None
+image_reshape = (128, 128)
 
-history = vae.fit(x_train, x_train,
+# Train the VAE model with your data
+
+# percorso della cartella del dataset
+folder_path = "C:/Users/39392/Desktop/Università/MAGISTRALE/Information retrieval/project_ir/soccer_dataset"
+# Carica le immagini e le etichette
+images, labels = load_images_from_folder(folder_path, image_reshape[0], image_reshape[1])
+
+# split the dataset into train, test and validation data
+x_train, images_temp, y_train, labels_temp = train_test_split(images, labels, test_size=0.4, random_state=42)
+x_val, x_test, y_val, y_test = train_test_split(images_temp, labels_temp, test_size=0.5, random_state=42)
+
+
+history = vae.fit(x_train, y_train,
                   epochs=epochs,
                   batch_size=batch_size,
-                  validation_data=(x_val, x_val))
+                  validation_data=(x_val, y_val))
 
 # Evaluate the model on the test set
-eval_result = vae.evaluate(x_test, x_test, batch_size=batch_size)
+eval_result = vae.evaluate(x_test, y_test, batch_size=batch_size)
 print("Test Loss:", eval_result)
 
 vae.save("models/vae/vae_model.h5")
@@ -159,6 +158,7 @@ plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.legend()
 plt.show()
+
 
 
 

@@ -6,8 +6,6 @@ from tensorflow import keras
 from keras import layers
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix
-import seaborn as sns
 
 
 def load_images_from_folder(folder, width, height):
@@ -125,13 +123,13 @@ vae.summary()
 
 # hyperParameter
 epochs = 10
-batch_size = 64
+batch_size = 16
 image_reshape = (128, 128)
 
 # Train the VAE model with your data
 
 # percorso della cartella del dataset
-folder_path = "C:/Users/39392/Desktop/Università/MAGISTRALE/Information retrieval/project_ir/soccer_dataset"
+folder_path = "C:/Users/39392/Desktop/Università/MAGISTRALE/Information retrieval/project_ir/soccer_dataset/train"
 # Carica le immagini e le etichette
 images, labels = load_images_from_folder(folder_path, image_reshape[0], image_reshape[1])
 

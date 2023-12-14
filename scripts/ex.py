@@ -124,3 +124,28 @@ input_shape = (224, 224, 3)
 num_classes = 9
 
 train_and_evaluate_model(train_dir, validation_dir, input_shape, num_classes)
+
+
+# evaluation metrics
+##################################################################################################àà
+
+# Evaluate the model on the test set
+predictions = model.predict(x_test)
+y_pred = np.argmax(predictions, axis=1)
+y_true = np.argmax(y_test, axis=1)
+
+
+# Confusion Matrix
+conf_matrix = confusion_matrix(y_true, y_pred)
+
+# Calculate accuracy
+accuracy = np.trace(conf_matrix) / np.sum(conf_matrix)
+print("Accuracy: {:.2f}%".format(accuracy * 100))
+
+# Calculate precision, recall, and F1 score
+precision = np.diag(conf_matrix) / np.sum(conf_matrix, axis=0)
+recall = np.diag(conf_matrix) / np.sum(conf_matrix, axis=1)
+f1 = f1_score(y_true, y_pred, average='weighted')
+print("Precision:", precision)
+print("Recall:", recall)
+print("F1 Score: {:.2f}".format(f1))

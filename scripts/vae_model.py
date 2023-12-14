@@ -1,8 +1,30 @@
-
+import os
+import cv2
+import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from keras import layers
+from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+
+
+def load_images_from_folder(folder, width, height):
+    data = []
+    target = []
+    for class_label in ["Event", "Soccer"]:
+        class_path = os.path.join(folder, class_label)
+        if os.path.isdir(class_path):
+            for img_filename in os.listdir(class_path):
+                img_path = os.path.join(class_path, img_filename)
+                img = cv2.imread(img_path)
+                img = cv2.resize(img, (width, height))
+
+                # Aggiungi le immagini e le etichette
+                data.append(img)
+                target.append(class_label)
+
+    return np.array(data), np.array(target)
+
 
 # Encoder
 encoder_inputs = keras.Input(shape=(28, 28, 1))
@@ -99,7 +121,19 @@ vae.compile(optimizer='adam', loss=vae_loss, metrics=['loss'])
 vae.summary()
 
 # Train the VAE model with your data
-# vae.fit(train_data, epochs=epochs, batch_size=batch_size, validation_data=(val_data, None))
+# percorso della cartella del dataset
+folder_path = "/percorso/della/tua/cartella"
+# Carica le immagini e le etichette
+images, labels = load_images_from_folder(folder_path, 128, 128)
+
+
+
+# Assuming 'images' is a list or array of image data, and 'labels' are corresponding labels
+images_train, images_temp, labels_train, labels_temp = train_test_split(images, labels, test_size=0.4, random_state=42)
+images_val, images_test, labels_val, labels_test = train_test_split(images_temp, labels_temp, test_size=0.5, random_state=42)
+
+# Now, images_train, labels_train are the training data, images_val, labels_val are the validation data, and images_test, labels_test are the test data
+
 
 epochs = 10
 batch_size = 64
@@ -125,3 +159,10 @@ plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.legend()
 plt.show()
+
+
+
+
+
+
+

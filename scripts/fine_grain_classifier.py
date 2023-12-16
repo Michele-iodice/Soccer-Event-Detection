@@ -4,40 +4,23 @@ from keras import layers
 import torch
 import datetime
 import matplotlib as plt
-from sklearn.metrics import confusion_matrix, classification_report, f1_score
+from sklearn.metrics import confusion_matrix, classification_report, f1_score, recall_score, accuracy_score
 from keras.callbacks import ReduceLROnPlateau
 from sklearn.model_selection import train_test_split
 from keras.utils import to_categorical
-import os
 import numpy as np
-import cv2
 import seaborn as sns
+from keras.losses import categorical_crossentropy
+from dataset import load_card_images_from_folder
 
 
-def load_images_from_folder(folder, width, height):
-    data = []
-    target = []
-    for class_label in os.listdir(folder):
-        if class_label not in ["Red-Cards", "Yellow-Cards"]:
-            class_path = os.path.join(folder, class_label)
-            if os.path.isdir(class_path):
-                for img_filename in os.listdir(class_path):
-                    img_path = os.path.join(class_path, img_filename)
-                    img = cv2.imread(img_path)
-                    img = cv2.resize(img, (width, height))
-
-                    # Aggiungi le immagini e le etichette
-                    data.append(img)
-                    target.append(class_label)
-
-    return np.array(data), np.array(target)
-
-
-def forward(inputs, targets):
+def mamc_loss(inputs, targets):
     """
             Args:
                 inputs (torch.Tensor): feature matrix with shape (batch_size, part_num, feat_dim).
                 targets (torch.LongTensor): ground truth labels with shape (num_classes).
+            :return the mamc loss explained in equation 12 of MAMC paper
+            Reference: Multi-Attention Multi-Class Constraint for Fine-grained Image Recognition
             """
     b, p, _ = inputs.size()
     n = b * p
@@ -45,7 +28,6 @@ def forward(inputs, targets):
     targets = torch.repeat_interleave(targets, p)
     parts = torch.arange(p).repeat(b)
     prod = torch.mm(inputs, inputs.t())
-    if self.use_gpu: parts = parts.cuda()
 
     same_class_mask = targets.expand(n, n).eq(targets.expand(n, n).t())
     same_atten_mask = parts.expand(n, n).eq(parts.expand(n, n).t())
@@ -87,7 +69,15 @@ def forward(inputs, targets):
         neg = neg.repeat(n_pos, 1)
         loss_dasc += torch.sum(torch.log(1 + torch.sum(torch.exp(neg - pos), dim=1)))
 
-    return (loss_sasc + loss_sadc + loss_dasc) / n
+    loss_n_pair=(loss_sasc + loss_sadc + loss_dasc) / n
+    # Define softmax loss
+    loss_softmax = categorical_crossentropy(targets, inputs)
+    # Define the weight parameter λ
+    lambda_param = 0.5
+    # Combine the losses with the specified weight
+    loss_combined = loss_softmax + lambda_param * loss_n_pair
+
+    return loss_combined
 
 
 # hyperParameter of the model (change it as needed)
@@ -148,24 +138,26 @@ output2 = layers.Dense(1, activation='softmax')(fc2)
 fgc_model = tf.keras.Model(inputs=input_layer, outputs=[output1, output2])
 
 # Compile the model
-fgc_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+fgc_model.compile(optimizer='adam', loss=['categorical_crossentropy', mamc_loss], metrics=['accuracy'])
 
 # Display the architecture of the model
 fgc_model.summary()
 
-# implement reduce_lr (to prevent overfitting)
+# implement reduce_lr (to prevent over fitting)
 reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_lr=0.0000001)
 
 # Train the Fine-Grain classifier model with your data
 
-# percorso della cartella del dataset
-folder_path = "C:/Users/39392/Desktop/Università/MAGISTRALE/Information retrieval/project_ir/soccer_dataset/train"
-# Carica le immagini e le etichette
-images, labels = load_images_from_folder(folder_path, image_reshape[0], image_reshape[1])
+# path of the dataset folder
+train_folder_path = "C:/Users/39392/Desktop/Università/MAGISTRALE/Information retrieval/project_ir/soccer_dataset/train"
+test_folder_path = "C:/Users/39392/Desktop/Università/MAGISTRALE/Information retrieval/project_ir/soccer_dataset/test"
+
+# load image and target
+images, labels = load_card_images_from_folder(train_folder_path, image_reshape[0], image_reshape[1])
+x_test, y_test = load_card_images_from_folder(test_folder_path, image_reshape[0], image_reshape[1])
 
 # split the dataset into train, test and validation data
-x_train, images_temp, y_train, labels_temp = train_test_split(images, labels, test_size=0.4, random_state=42)
-x_val, x_test, y_val, y_test = train_test_split(images_temp, labels_temp, test_size=0.5, random_state=42)
+x_train, x_val, y_train, y_val = train_test_split(images, labels, test_size=0.4, random_state=42)
 
 # Convert class vectors to binary class matrices (one-hot encoding)
 y_train = to_categorical(y_train, num_classes)
@@ -173,27 +165,27 @@ y_test = to_categorical(y_test, num_classes)
 y_val = to_categorical(y_val, num_classes)
 
 history = fgc_model.fit(x_train, y_train,
-                    epochs=epochs,
-                    batch_size=batch_size,
-                    validation_data=(x_val, y_val),
-                    validation_steps=64,
-                    verbose=1,
-                    callbacks=reduce_lr)
+                        epochs=epochs,
+                        batch_size=batch_size,
+                        validation_data=(x_val, y_val),
+                        validation_steps=64,
+                        verbose=1,
+                        callbacks=reduce_lr)
 
 # Evaluate the model on the test set
 prediction = fgc_model.predict(x_test)
-y_pred = np.argmax(prediction, axis=1)
+y_predict = np.argmax(prediction, axis=1)
 y_true = np.argmax(y_test, axis=1)
 
 fgc_model.save("models/fgc/fgc_model.h5")
 
 # Confusion Matrix
-conf_matrix = confusion_matrix(y_true, y_pred)
+conf_matrix = confusion_matrix(y_true, y_predict)
 
 # Calculate accuracy, recall, and F1 score
-accuracy = np.trace(conf_matrix) / np.sum(conf_matrix)
-recall = np.diag(conf_matrix) / np.sum(conf_matrix, axis=1)
-f1 = f1_score(y_true, y_pred, average='weighted')
+accuracy = accuracy_score(y_true, y_predict, average='weighted')
+recall = recall_score(y_true, y_predict, average='weighted')
+f1 = f1_score(y_true, y_predict, average='weighted')
 print("Accuracy: {:.2f}%".format(accuracy * 100))
 print("Recall:", recall)
 print("F1 Score: {:.2f}".format(f1))
@@ -222,7 +214,7 @@ plt.show()
 
 # Plot the confusion matrix
 plt.figure(figsize=(num_classes, num_classes))
-commands = ["Cards", "Center", "Corner", "Free-Kick", "Left", "Penalty", "Right", "Tackle", "To-Subtitue"]
+commands = ["Cards", "Center", "Corner", "Free-Kick", "Left", "Penalty", "Right", "Tackle", "To-Substitute"]
 commands = np.asarray(commands)
 sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=commands, yticklabels=commands)
 plt.title('Confusion Matrix')
@@ -233,5 +225,5 @@ plt.show()
 
 # Print classification report
 print("Classification Report:\n", classification_report(y_true,
-                                                        y_pred,
+                                                        y_predict,
                                                         target_names=[str(i) for i in range(num_classes)]))

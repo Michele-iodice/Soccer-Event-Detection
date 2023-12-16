@@ -1,31 +1,10 @@
-import os
-import cv2
-import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from keras import layers
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import datetime
-
-
-def load_images_from_folder(folder, width, height):
-    data = []
-    target = []
-    for class_label in os.listdir(folder):
-        if class_label not in ["Red-Cards", "Yellow-Cards"]:
-            class_path = os.path.join(folder, class_label)
-            if os.path.isdir(class_path):
-                for img_filename in os.listdir(class_path):
-                    img_path = os.path.join(class_path, img_filename)
-                    img = cv2.imread(img_path)
-                    img = cv2.resize(img, (width, height))
-
-                    # Aggiungi le immagini e le etichette
-                    data.append(img)
-                    target.append(class_label)
-
-    return np.array(data), np.array(target)
+from dataset import load_images_from_folder
 
 
 # Encoder
@@ -128,14 +107,16 @@ image_reshape = (224, 224)
 
 # Train the VAE model with your data
 
-# percorso della cartella del dataset
-folder_path = "C:/Users/39392/Desktop/Università/MAGISTRALE/Information retrieval/project_ir/soccer_dataset/train"
-# Carica le immagini e le etichette
-images, labels = load_images_from_folder(folder_path, image_reshape[0], image_reshape[1])
+# path of the dataset folder
+train_folder_path = "C:/Users/39392/Desktop/Università/MAGISTRALE/Information retrieval/project_ir/soccer_dataset/train"
+test_folder_path = "C:/Users/39392/Desktop/Università/MAGISTRALE/Information retrieval/project_ir/soccer_dataset/test"
+
+# load image and target
+images, labels = load_images_from_folder(train_folder_path, image_reshape[0], image_reshape[1])
+x_test, y_test = load_images_from_folder(test_folder_path, image_reshape[0], image_reshape[1])
 
 # split the dataset into train, test and validation data
-x_train, images_temp, y_train, labels_temp = train_test_split(images, labels, test_size=0.4, random_state=42)
-x_val, x_test, y_val, y_test = train_test_split(images_temp, labels_temp, test_size=0.5, random_state=42)
+x_train, x_val, y_train, y_val = train_test_split(images, labels, test_size=0.4, random_state=42)
 
 
 history = vae.fit(x_train, y_train,
@@ -147,7 +128,6 @@ eval_result = vae.evaluate(x_test, y_test)
 print("Test Loss:", eval_result)
 
 vae.save("models/vae/vae_model.h5")
-
 now = datetime.datetime.now()
 
 # Plot training history
@@ -158,11 +138,3 @@ plt.ylabel('Loss')
 plt.legend()
 plt.savefig("models/vae/fig/fine_grain_classifier_history.png".format(now))
 plt.show()
-
-
-
-
-
-
-
-

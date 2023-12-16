@@ -62,7 +62,7 @@ values = precision
 columns = ['Class', 'Precision']
 
 df = pd.DataFrame({'Key': keys, 'Value': values}, columns=columns)
-grouped_df = df.groupby('Key').sum().reset_index()
+grouped_df = df.groupby('Key').mean().reset_index()
 
 df.to_csv('fig/algorithm_precision.csv', index=False)
 

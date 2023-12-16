@@ -8,7 +8,7 @@ from sklearn.metrics import confusion_matrix, classification_report, f1_score, r
 import seaborn as sns
 import matplotlib.pyplot as plt
 import datetime
-from dataset import load_images_from_folder
+from dataset import load_soccer_images_from_folder
 
 
 # hyperParameter of the model (change it as needed)
@@ -62,8 +62,8 @@ train_folder_path = "C:/Users/39392/Desktop/Università/MAGISTRALE/Information r
 test_folder_path = "C:/Users/39392/Desktop/Università/MAGISTRALE/Information retrieval/project_ir/soccer_dataset/test"
 
 # load image and target
-images, labels = load_images_from_folder(train_folder_path, image_reshape[0], image_reshape[1])
-x_test, y_test = load_images_from_folder(test_folder_path, image_reshape[0], image_reshape[1])
+images, labels = load_soccer_images_from_folder(train_folder_path, image_reshape[0], image_reshape[1])
+x_test, y_test = load_soccer_images_from_folder(test_folder_path, image_reshape[0], image_reshape[1])
 
 # split the dataset into train, test and validation data
 x_train, x_val, y_train, y_val = train_test_split(images, labels, test_size=0.4, random_state=42)

@@ -149,8 +149,8 @@ reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_lr
 # Train the Fine-Grain classifier model with your data
 
 # path of the dataset folder
-train_folder_path = "C:/Users/39392/Desktop/Università/MAGISTRALE/Information retrieval/project_ir/soccer_dataset/train"
-test_folder_path = "C:/Users/39392/Desktop/Università/MAGISTRALE/Information retrieval/project_ir/soccer_dataset/test"
+train_folder_path = "C:/Users/39392/Desktop/University/MAGISTRALE/Information retrieval/project_ir/soccer_dataset/train"
+test_folder_path = "C:/Users/39392/Desktop/University/MAGISTRALE/Information retrieval/project_ir/soccer_dataset/test"
 
 # load image and target
 images, labels = load_card_images_from_folder(train_folder_path, image_reshape[0], image_reshape[1])

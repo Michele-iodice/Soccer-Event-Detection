@@ -108,8 +108,8 @@ image_reshape = (224, 224)
 # Train the VAE model with your data
 
 # path of the dataset folder
-train_folder_path = "C:/Users/39392/Desktop/Università/MAGISTRALE/Information retrieval/project_ir/soccer_dataset/train"
-test_folder_path = "C:/Users/39392/Desktop/Università/MAGISTRALE/Information retrieval/project_ir/soccer_dataset/test"
+train_folder_path = "C:/Users/39392/Desktop/University/MAGISTRALE/Information retrieval/project_ir/soccer_dataset/train"
+test_folder_path = "C:/Users/39392/Desktop/University/MAGISTRALE/Information retrieval/project_ir/soccer_dataset/test"
 
 # load image and target
 images, labels = load_soccer_images_from_folder(train_folder_path, image_reshape[0], image_reshape[1])

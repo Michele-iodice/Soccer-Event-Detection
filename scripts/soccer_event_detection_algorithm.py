@@ -17,7 +17,7 @@ vae = load_model("models/vae/vae_model.h5")
 ic_model = load_model("models/ic/ic_model.h5")
 fgc_model = load_model("models/fgc/fgc_model.h5")
 
-test_folder_path = "C:/Users/39392/Desktop/Università/MAGISTRALE/Information retrieval/project_ir/soccer_dataset"
+test_folder_path = "C:/Users/39392/Desktop/University/MAGISTRALE/Information retrieval/project_ir/soccer_dataset"
 
 # load image and target as x_test and y_test respectively
 x_test, y_test = load_images_from_folder(test_folder_path, image_reshape[0], image_reshape[1])

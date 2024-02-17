@@ -12,7 +12,7 @@ epochs = 20
 image_reshape = (224, 224)
 num_classes = 9
 learning_rate = 0.0001
-clipping_value=1.0
+# clipping_value=1.0
 # l2 = 0.01
 
 # Encoder
@@ -110,7 +110,7 @@ vae = keras.Model(encoder_inputs, [vae_outputs, z_mean, z_log_var], name="vae")
 # Define custom VAE loss function
 def vae_loss(y_true, y_pred):
     epsilon = 1e-10
-    beta = 0.01
+    beta = 0.7
 
     y_true = tf.cast(y_true, tf.float32)
     y_true_mean = tf.reduce_mean(y_true)
@@ -129,12 +129,12 @@ def vae_loss(y_true, y_pred):
                                    reconstruction_loss)
 
     # Total loss
-    total_loss = reconstruction_loss + beta * kl_loss
+    total_loss = beta * reconstruction_loss + (1 - beta) * kl_loss
     return total_loss
 
 
 # Compile the model
-optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, clipvalue=clipping_value)
+optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 vae.compile(optimizer=optimizer,
             loss=vae_loss,
             metrics=[vae_loss])

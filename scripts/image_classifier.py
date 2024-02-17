@@ -36,21 +36,11 @@ ic_model = tf.keras.Sequential([
     layers.Dense(num_classes, activation='softmax')
 ])
 
-
-# Apply threshold to the predictions
-def threshold_predictions(predictions, threshold=threshold_value):
-    return tf.where(predictions > threshold, 1, 0)
-
-
-# Wrap the threshold function as a Lambda layer
-threshold_layer = layers.Lambda(threshold_predictions)
-
-# Add the threshold layer to the model
-ic_model.add(threshold_layer)
-
 optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 # Compile the model
-ic_model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
+ic_model.compile(optimizer=optimizer,
+                 loss=tf.keras.losses.CategoricalCrossentropy(label_smoothing=0.9),
+                 metrics=['accuracy'])
 
 # Display the model summary
 ic_model.summary()
@@ -68,23 +58,33 @@ x_test, y_test = load_soccer_images_from_folder(test_folder_path, image_reshape[
 # split the dataset into train, test and validation data
 x_train, x_val, y_train, y_val = train_test_split(images, labels, test_size=0.4, random_state=42)
 
-# Convert class vectors to binary class matrices (one-hot encoding)
-y_train = to_categorical(y_train, num_classes)
-y_test = to_categorical(y_test, num_classes)
-y_val = to_categorical(y_val, num_classes)
+# Convert class vector to numeric values
+class_to_int = {c: i for i, c in enumerate(set(y_train))}
+y_train_numeric = [class_to_int[c] for c in y_train]
+class_to_int = {c: i for i, c in enumerate(set(y_test))}
+y_test_numeric = [class_to_int[c] for c in y_test]
+class_to_int = {c: i for i, c in enumerate(set(y_val))}
+y_val_numeric = [class_to_int[c] for c in y_val]
 
+# Convert class vectors to binary class matrices (one-hot encoding)
+y_train = to_categorical(y_train_numeric, num_classes)
+y_test = to_categorical(y_test_numeric, num_classes)
+y_val = to_categorical(y_val_numeric, num_classes)
+
+print(f"start training")
 history = ic_model.fit(x_train, y_train,
                        epochs=epochs,
                        batch_size=batch_size,
                        validation_data=(x_val, y_val))
 
+print(f"start evaluation")
 # Evaluate the model on the test set
 prediction = ic_model.predict(x_test)
 y_predict = np.argmax(prediction, axis=1)
 y_true = np.argmax(y_test, axis=1)
 
 # save the model
-ic_model.save("models/ic/ic_model.h5")
+ic_model.save("../scripts/models/ic/ic_model.keras")
 
 
 # Confusion Matrix
@@ -101,23 +101,26 @@ print("F1 Score: {:.2f}".format(f1))
 now = datetime.datetime.now()
 
 # Plot training history
-plt.plot(history.history['loss'], label='Training Loss')
-plt.plot(history.history['val_loss'], label='Validation Loss')
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+epochs = range(1, len(loss) + 1)
+plt.plot(epochs, loss, label='Training Loss')
+plt.plot(epochs, val_loss, label='Validation Loss')
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.legend()
-plt.savefig("models/ic/fig/fine_grain_classifier_history.png".format(now))
+plt.savefig("../scripts/models/ic/fig/image_classifier_history.png".format(now))
 plt.show()
 
 # Plot the confusion matrix
 plt.figure(figsize=(num_classes, num_classes))
-commands = ["Cards", "Center", "Corner", "Free-Kick", "Left", "Penalty", "Right", "Tackle", "To-Substitute"]
+commands = ["Cards", "Center", "Corner", "Free-Kick", "Left", "Penalty", "Right", "Tackle", "To-Subtitute"]
 commands = np.asarray(commands)
 sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=commands, yticklabels=commands)
 plt.title('Confusion Matrix')
 plt.xlabel('Predicted Label')
 plt.ylabel('True Label')
-plt.savefig("models/ic/fig/fine_grain_classifier_confusion_matrix.png".format(now))
+plt.savefig("../scripts/models/ic/fig/image_classifier_confusion_matrix.png".format(now))
 plt.show()
 
 # Print classification report

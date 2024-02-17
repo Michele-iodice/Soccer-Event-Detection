@@ -8,14 +8,14 @@ image_reshape = (224, 224)
 threshold_value = 0.9
 
 # classes of the corresponding model
-vae_classes = ["Cards", "Center", "Corner", "Free-Kick", "Left", "Penalty", "Right", "Tackle", "To-Substitute"]
-ic_classes = ["Cards", "Center", "Corner", "Free-Kick", "Left", "Penalty", "Right", "Tackle", "To-Substitute"]
+vae_classes = ["Cards", "Center", "Corner", "Free-Kick", "Left", "Penalty", "Right", "Tackle", "To-Subtitute"]
+ic_classes = ["Cards", "Center", "Corner", "Free-Kick", "Left", "Penalty", "Right", "Tackle", "To-Subtitute"]
 fgc_classes = ["Red-Cards", "Yellow-Cards"]
 
 # Load the entire model
-vae = load_model("models/vae/vae_model.h5")
-ic_model = load_model("models/ic/ic_model.h5")
-fgc_model = load_model("models/fgc/fgc_model.h5")
+vae = load_model("../scripts/models/vae/vae_model.keras")
+ic_model = load_model("../scripts/models/ic/ic_model.keras")
+fgc_model = load_model("../scripts/models/fgc/fgc_model.keras")
 
 test_folder_path = "C:/Users/39392/Desktop/University/MAGISTRALE/Information retrieval/project_ir/soccer_dataset"
 
@@ -64,6 +64,6 @@ columns = ['Class', 'Precision']
 df = pd.DataFrame({'Key': keys, 'Value': values}, columns=columns)
 grouped_df = df.groupby('Key').mean().reset_index()
 
-df.to_csv('fig/algorithm_precision.csv', index=False)
+df.to_csv('../scripts/fig/algorithm_precision.csv', index=False)
 
 print(grouped_df)

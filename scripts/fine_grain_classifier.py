@@ -14,70 +14,66 @@ from keras.losses import categorical_crossentropy
 from dataset import load_card_images_from_folder
 
 
-def mamc_loss(inputs, targets):
-    """
-            Args:
-                inputs (torch.Tensor): feature matrix with shape (batch_size, part_num, feat_dim).
-                targets (torch.LongTensor): ground truth labels with shape (num_classes).
-            :return the mamc loss explained in equation 12 of MAMC paper
-            Reference: Multi-Attention Multi-Class Constraint for Fine-grained Image Recognition
-            """
-    b, p, _ = inputs.size()
-    n = b * p
-    inputs = inputs.contiguous().view(n, -1)
-    targets = torch.repeat_interleave(targets, p)
-    parts = torch.arange(p).repeat(b)
-    prod = torch.mm(inputs, inputs.t())
+def mamc_loss(inputs, target):
+    """Args:
+                :param inputs :(tf.Tensor) feature matrix with shape (batch_size, part_num, feat_dim).
+                :param target :(tf.Tensor) ground truth labels with shape (batch_size,).
+                :return the mamc loss explained in equation 12 of MAMC paper Reference: Multi-Attention Multi-Class
+                Constraint for Fine-grained Image Recognition
+                """
+    cc_inputs = inputs
+    cc_target = target
+    # Ottieni le dimensioni dei tensori
+    batch, feature_dim = tf.shape(inputs)[0], tf.shape(inputs)[1]
 
-    same_class_mask = targets.expand(n, n).eq(targets.expand(n, n).t())
-    same_atten_mask = parts.expand(n, n).eq(parts.expand(n, n).t())
+    # Modifica la forma degli input per facilitare i calcoli
+    inputs = tf.reshape(inputs, [batch, 1, feature_dim])
+    inputs_transpose = tf.reshape(inputs, [batch, feature_dim, 1])
 
-    s_sasc = same_class_mask & same_atten_mask
-    s_sadc = (~same_class_mask) & same_atten_mask
-    s_dasc = same_class_mask & (~same_atten_mask)
-    s_dadc = (~same_class_mask) & (~same_atten_mask)
+    # Calcola il prodotto tra gli input e la loro trasposta
+    dot_product = tf.matmul(inputs, inputs_transpose)
+    dot_product = tf.tile(dot_product, [1, 1, 2])
 
-    # For each anchor, compute equation (11) of paper
-    loss_sasc = 0
-    loss_sadc = 0
-    loss_dasc = 0
-    for i in range(n):
-        # loss_sasc
-        pos = prod[i][s_sasc[i]]
-        neg = prod[i][s_sadc[i] | s_dasc[i] | s_dadc[i]]
-        n_pos = pos.size(0)
-        n_neg = neg.size(0)
-        pos = pos.repeat(n_neg, 1).t()
-        neg = neg.repeat(n_pos, 1)
-        loss_sasc += torch.sum(torch.log(1 + torch.sum(torch.exp(neg - pos), dim=1)))
+    # Crea le maschere
+    same_class_mask = tf.equal(tf.expand_dims(target, 0), tf.expand_dims(target, 1))
+    same_atten_mask = tf.eye(batch, dtype=tf.bool)
+    same_atten_mask = tf.expand_dims(same_atten_mask, axis=-1)
+    same_atten_mask = tf.tile(same_atten_mask, [1, 1, 2])
 
-        # loss_sadc
-        pos = prod[i][s_sadc[i]]
-        neg = prod[i][s_dadc[i]]
-        n_pos = pos.size(0)
-        n_neg = neg.size(0)
-        pos = pos.repeat(n_neg, 1).t()
-        neg = neg.repeat(n_pos, 1)
-        loss_sadc += torch.sum(torch.log(1 + torch.sum(torch.exp(neg - pos), dim=1)))
+    # Esegui l'operazione logica AND
+    s_sasc = tf.logical_and(same_class_mask, same_atten_mask)
+    s_sadc = tf.logical_and(tf.logical_not(same_class_mask), same_atten_mask)
+    s_dasc = tf.logical_and(same_class_mask, tf.logical_not(same_atten_mask))
+    s_dadc = tf.logical_and(tf.logical_not(same_class_mask), tf.logical_not(same_atten_mask))
 
-        # loss_dasc
-        pos = prod[i][s_dasc[i]]
-        neg = prod[i][s_dadc[i]]
-        n_pos = pos.size(0)
-        n_neg = neg.size(0)
-        pos = pos.repeat(n_neg, 1).t()
-        neg = neg.repeat(n_pos, 1)
-        loss_dasc += torch.sum(torch.log(1 + torch.sum(torch.exp(neg - pos), dim=1)))
+    def calculate_loss(tens, mask1, mask2):
+        if tf.equal(tf.size(tens), tf.size(mask1)) and tf.equal(tf.size(tens), tf.size(mask2)):
+            positive_loss = -tf.math.log_sigmoid(tf.boolean_mask(tens, mask1))
+            negative_loss = -tf.math.log_sigmoid(-tf.boolean_mask(tens, mask2))
+            loss = tf.reduce_mean(positive_loss + negative_loss)
+        else:
+            loss = 0.0
 
-    loss_n_pair=(loss_sasc + loss_sadc + loss_dasc) / n
-    # Define softmax loss
-    loss_softmax = categorical_crossentropy(targets, inputs)
-    # Define the weight parameter λ
-    lambda_param = 0.5
-    # Combine the losses with the specified weight
-    loss_combined = loss_softmax + lambda_param * loss_n_pair
+        return loss
 
-    return loss_combined
+    # Calcola le perdite
+    loss_sasc = calculate_loss(dot_product, s_sasc, tf.logical_or(s_sadc, tf.logical_or(s_dasc, s_dadc)))
+    loss_sadc = calculate_loss(dot_product, s_sadc, s_dadc)
+    loss_dasc = calculate_loss(dot_product, s_dasc, s_dadc)
+
+    # Calcola la perdita complessiva
+    loss_n_pair = tf.reduce_mean(loss_sasc + loss_sadc + loss_dasc)
+
+    # Definisci la perdita softmax
+    softmax_loss = tf.reduce_mean(categorical_crossentropy(cc_inputs, cc_target))
+
+    # Definisci il parametro di peso λ=0.5
+    lambda_weight = 0.5
+
+    # Combina le perdite pesate
+    combined_loss = loss_n_pair * lambda_weight + softmax_loss
+
+    return combined_loss
 
 
 # hyperParameter of the model (change it as needed)
@@ -105,25 +101,25 @@ x = base_model(input_layer)
 y = layers.GlobalAveragePooling2D()(x)
 z = layers.GlobalAveragePooling2D()(x)
 # Fully Connected Layer 1
-y = layers.Dense(2048)(y)
-z = layers.Dense(2048)(z)
+y = layers.Dense(1280)(y)
+z = layers.Dense(1280)(z)
 # ReLU layer
 y = layers.ReLU()(y)
 z = layers.ReLU()(z)
 # Fully Connected Layer 2
-y = layers.Dense(2048)(y)
-z = layers.Dense(2048)(z)
+y = layers.Dense(1280)(y)
+z = layers.Dense(1280)(z)
 # Sigmoid layer
 y = layers.Activation('sigmoid')(y)
 z = layers.Activation('sigmoid')(z)
 
 # Attention map
-attention1 = layers.Multiply([x, y])
-attention2 = layers.Multiply([x, z])
+attention1 = layers.Multiply()([x, y])
+attention2 = layers.Multiply()([x, z])
 
 # Flatten
 fl1 = layers.Flatten()(attention1)
-fl2 = layers.Flatten()(attention1)
+fl2 = layers.Flatten()(attention2)
 
 # Fully Connected Layer 3
 fc1 = layers.Dense(1024)(fl1)
@@ -131,8 +127,8 @@ fc2 = layers.Dense(1024)(fl2)
 
 
 # Output layer with sigmoid activation for binary classification
-output1 = layers.Dense(1, activation='softmax')(fc1)
-output2 = layers.Dense(1, activation='softmax')(fc2)
+output1 = layers.Dense(num_classes, activation='softmax')(fc1)
+output2 = layers.Dense(num_classes, activation='softmax')(fc2)
 
 # Create the model
 fgc_model = tf.keras.Model(inputs=input_layer, outputs=[output1, output2])
@@ -159,11 +155,20 @@ x_test, y_test = load_card_images_from_folder(test_folder_path, image_reshape[0]
 # split the dataset into train, test and validation data
 x_train, x_val, y_train, y_val = train_test_split(images, labels, test_size=0.4, random_state=42)
 
-# Convert class vectors to binary class matrices (one-hot encoding)
-y_train = to_categorical(y_train, num_classes)
-y_test = to_categorical(y_test, num_classes)
-y_val = to_categorical(y_val, num_classes)
+# Convert class vector to numeric values
+class_to_int = {c: i for i, c in enumerate(set(y_train))}
+y_train_numeric = [class_to_int[c] for c in y_train]
+class_to_int = {c: i for i, c in enumerate(set(y_test))}
+y_test_numeric = [class_to_int[c] for c in y_test]
+class_to_int = {c: i for i, c in enumerate(set(y_val))}
+y_val_numeric = [class_to_int[c] for c in y_val]
 
+# Convert class vectors to binary class matrices (one-hot encoding)
+y_train = to_categorical(y_train_numeric, num_classes)
+y_test = to_categorical(y_test_numeric, num_classes)
+y_val = to_categorical(y_val_numeric, num_classes)
+
+print(f"start training")
 history = fgc_model.fit(x_train, y_train,
                         epochs=epochs,
                         batch_size=batch_size,
@@ -173,11 +178,12 @@ history = fgc_model.fit(x_train, y_train,
                         callbacks=reduce_lr)
 
 # Evaluate the model on the test set
+print(f"start evaluation")
 prediction = fgc_model.predict(x_test)
 y_predict = np.argmax(prediction, axis=1)
 y_true = np.argmax(y_test, axis=1)
 
-fgc_model.save("models/fgc/fgc_model.h5")
+fgc_model.save("../scripts/models/fgc/fgc_model.keras")
 
 # Confusion Matrix
 conf_matrix = confusion_matrix(y_true, y_predict)
@@ -192,35 +198,40 @@ print("F1 Score: {:.2f}".format(f1))
 
 # plot results
 now = datetime.datetime.now()
-
-plt.plot(history.history['acc'])
-plt.plot(history.history['val_acc'])
-plt.title('model_without_MAMC accuracy')
+acc = history.history['acc']
+val_acc = history.history['val_loss']
+epochs = range(1, len(acc) + 1)
+plt.plot(epochs, acc, label='Training Loss')
+plt.plot(epochs, val_acc, label='Validation Loss')
+plt.title('model_with_MAMC accuracy')
 plt.ylabel('accuracy')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
-plt.savefig("models/fgc/fig/fine_grain_classifier_history.png".format(now))
+plt.savefig("../scripts/models/fgc/fig/fine_grain_classifier_history.png".format(now))
 plt.show()
 
 # loss
-plt.plot(history.history['loss'])
-plt.plot(history.history['val_loss'])
-plt.title('model_without_MAMC loss')
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+epochs = range(1, len(loss) + 1)
+plt.plot(epochs, loss, label='Training Loss')
+plt.plot(epochs, val_loss, label='Validation Loss')
+plt.title('model_with_MAMC loss')
 plt.ylabel('loss')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
-plt.savefig("models/fgc/fig/fine_grain_classifier_loss.png".format(now))
+plt.savefig("../scripts/models/fgc/fig/fine_grain_classifier_loss.png".format(now))
 plt.show()
 
 # Plot the confusion matrix
 plt.figure(figsize=(num_classes, num_classes))
-commands = ["Cards", "Center", "Corner", "Free-Kick", "Left", "Penalty", "Right", "Tackle", "To-Substitute"]
+commands = ["Cards", "Center", "Corner", "Free-Kick", "Left", "Penalty", "Right", "Tackle", "To-Subtitute"]
 commands = np.asarray(commands)
 sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=commands, yticklabels=commands)
 plt.title('Confusion Matrix')
 plt.xlabel('Predicted Label')
 plt.ylabel('True Label')
-plt.savefig("models/ic/fig/fine_grain_classifier_confusion_matrix.png".format(now))
+plt.savefig("../scripts/models/ic/fig/fine_grain_classifier_confusion_matrix.png".format(now))
 plt.show()
 
 # Print classification report

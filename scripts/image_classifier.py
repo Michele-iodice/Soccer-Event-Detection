@@ -91,7 +91,7 @@ ic_model.save("../scripts/models/ic/ic_model.keras")
 conf_matrix = confusion_matrix(y_true, y_predict)
 
 # Calculate accuracy, recall, and F1 score
-accuracy = accuracy_score(y_true, y_predict, average='weighted')
+accuracy = accuracy_score(y_true, y_predict)
 recall = recall_score(y_true, y_predict, average='weighted')
 f1 = f1_score(y_true, y_predict, average='weighted')
 print("Accuracy: {:.2f}%".format(accuracy * 100))

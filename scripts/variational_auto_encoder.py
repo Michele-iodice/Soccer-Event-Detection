@@ -12,7 +12,7 @@ epochs = 20
 image_reshape = (224, 224)
 num_classes = 9
 learning_rate = 0.0001
-# clipping_value=1.0
+clipping_value=2.0
 # l2 = 0.01
 
 # Encoder
@@ -134,7 +134,7 @@ def vae_loss(y_true, y_pred):
 
 
 # Compile the model
-optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, clipvalue=clipping_value)
 vae.compile(optimizer=optimizer,
             loss=vae_loss,
             metrics=[vae_loss])
@@ -190,5 +190,5 @@ plt.plot(epochs, val_loss, label='Validation Loss')
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.legend()
-plt.savefig("../scripts/models/vae/fig".format(now))
+plt.savefig("../scripts/models/vae/fig/vae_loss_report".format(now))
 plt.show()

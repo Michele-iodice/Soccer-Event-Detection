@@ -1,9 +1,8 @@
 import tensorflow as tf
 from efficientnet.tfkeras import EfficientNetB0
 from keras import layers
-import torch
 import datetime
-import matplotlib as plt
+import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, classification_report, f1_score, recall_score, accuracy_score
 from keras.callbacks import ReduceLROnPlateau
 from sklearn.model_selection import train_test_split
@@ -28,7 +27,7 @@ def mamc_loss(inputs, target):
 
     # Modifica la forma degli input per facilitare i calcoli
     inputs = tf.reshape(inputs, [batch, 1, feature_dim])
-    inputs_transpose = tf.reshape(inputs, [batch, feature_dim, 1])
+    inputs_transpose = tf.transpose(inputs, perm=[0, 2, 1])
 
     # Calcola il prodotto tra gli input e la loro trasposta
     dot_product = tf.matmul(inputs, inputs_transpose)
@@ -77,12 +76,12 @@ def mamc_loss(inputs, target):
 
 
 # hyperParameter of the model (change it as needed)
-input_shape=(448, 448, 3)
+input_shape=(224, 224, 3)
 num_classes=2
 epochs = 60
 batch_size = 16
 learning_rate = 0.001
-image_reshape = (448, 448)
+image_reshape = (224, 224)
 embedding_size = 64
 
 # Define the EfficientNetB0 backbone with pretrained weights
@@ -140,7 +139,7 @@ fgc_model.compile(optimizer='adam', loss=['categorical_crossentropy', mamc_loss]
 fgc_model.summary()
 
 # implement reduce_lr (to prevent over fitting)
-reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_lr=0.0000001)
+reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, min_lr=learning_rate)
 
 # Train the Fine-Grain classifier model with your data
 
@@ -173,14 +172,14 @@ history = fgc_model.fit(x_train, y_train,
                         epochs=epochs,
                         batch_size=batch_size,
                         validation_data=(x_val, y_val),
-                        validation_steps=64,
                         verbose=1,
                         callbacks=reduce_lr)
 
 # Evaluate the model on the test set
 print(f"start evaluation")
 prediction = fgc_model.predict(x_test)
-y_predict = np.argmax(prediction, axis=1)
+predictions = (prediction[0] + prediction[1]) / 2
+y_predict = np.argmax(predictions, axis=1)
 y_true = np.argmax(y_test, axis=1)
 
 fgc_model.save("../scripts/models/fgc/fgc_model.keras")
@@ -189,7 +188,7 @@ fgc_model.save("../scripts/models/fgc/fgc_model.keras")
 conf_matrix = confusion_matrix(y_true, y_predict)
 
 # Calculate accuracy, recall, and F1 score
-accuracy = accuracy_score(y_true, y_predict, average='weighted')
+accuracy = accuracy_score(y_true, y_predict)
 recall = recall_score(y_true, y_predict, average='weighted')
 f1 = f1_score(y_true, y_predict, average='weighted')
 print("Accuracy: {:.2f}%".format(accuracy * 100))
@@ -198,11 +197,11 @@ print("F1 Score: {:.2f}".format(f1))
 
 # plot results
 now = datetime.datetime.now()
-acc = history.history['acc']
-val_acc = history.history['val_loss']
+acc = history.history['dense_6_accuracy']
+val_acc = history.history['val_dense_6_accuracy']
 epochs = range(1, len(acc) + 1)
-plt.plot(epochs, acc, label='Training Loss')
-plt.plot(epochs, val_acc, label='Validation Loss')
+plt.plot(epochs, acc, label='Training Accuracy')
+plt.plot(epochs, val_acc, label='Validation Accuracy')
 plt.title('model_with_MAMC accuracy')
 plt.ylabel('accuracy')
 plt.xlabel('epoch')
@@ -225,7 +224,7 @@ plt.show()
 
 # Plot the confusion matrix
 plt.figure(figsize=(num_classes, num_classes))
-commands = ["Cards", "Center", "Corner", "Free-Kick", "Left", "Penalty", "Right", "Tackle", "To-Subtitute"]
+commands = ["Red-Cards", "Yellow-Cards"]
 commands = np.asarray(commands)
 sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=commands, yticklabels=commands)
 plt.title('Confusion Matrix')

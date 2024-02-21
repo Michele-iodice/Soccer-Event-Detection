@@ -2,6 +2,7 @@ import numpy as np
 from keras.models import load_model
 from dataset import load_images_from_folder
 import pandas as pd
+from sklearn.metrics import classification_report, f1_score, recall_score, accuracy_score
 
 # hyperParameter
 image_reshape = (224, 224)
@@ -13,9 +14,9 @@ ic_classes = ["Cards", "Center", "Corner", "Free-Kick", "Left", "Penalty", "Righ
 fgc_classes = ["Red-Cards", "Yellow-Cards"]
 
 # Load the entire model
-vae = load_model("../scripts/models/vae/vae_model.keras")
-ic_model = load_model("../scripts/models/ic/ic_model.keras")
-fgc_model = load_model("../scripts/models/fgc/fgc_model.keras")
+vae = load_model("../scripts/models/vae/vae_model.keras", safe_mode=False)
+ic_model = load_model("../scripts/models/ic/ic_model.keras", safe_mode=False)
+fgc_model = load_model("../scripts/models/fgc/fgc_model.keras", safe_mode=False)
 
 test_folder_path = "C:/Users/39392/Desktop/University/MAGISTRALE/Information retrieval/project_ir/soccer_dataset"
 
@@ -23,6 +24,7 @@ test_folder_path = "C:/Users/39392/Desktop/University/MAGISTRALE/Information ret
 x_test, y_test = load_images_from_folder(test_folder_path, image_reshape[0], image_reshape[1])
 
 y_predict = []
+y_true = []
 precision = []
 
 for x, y in zip(x_test, y_test):
@@ -54,6 +56,7 @@ for x, y in zip(x_test, y_test):
             class_predict = "Other-soccer-events"
 
     y_predict.append(class_predict)
+    y_true.append(y)
     precision.append(x_precision)
 
 

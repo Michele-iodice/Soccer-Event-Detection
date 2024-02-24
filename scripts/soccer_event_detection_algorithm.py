@@ -27,7 +27,7 @@ def loss_vae(y_true, y_pred):
 
 # hyperParameter
 image_reshape = (224, 224)
-threshold_ic = 0.8
+threshold_ic = 0.1
 threshold_vae = 144.5
 
 # classes of the corresponding model

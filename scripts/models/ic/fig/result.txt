@@ -1,3 +1,4 @@
+model for 550 samples
 Accuracy: 11.11%
 Recall: 0.1111111111111111
 F1 Score: 0.10
@@ -17,3 +18,24 @@ Classification Report:
     accuracy                           0.11       900
    macro avg       0.11      0.11      0.10       900
 weighted avg       0.11      0.11      0.10       900
+------------------------------------------------------------
+model for 1500 samples
+Accuracy: 18.11%
+Recall: 0.1811111111111111
+F1 Score: 0.10
+Classification Report:
+               precision    recall  f1-score   support
+
+           0       0.17      0.58      0.27       100
+           1       0.24      0.12      0.16       100
+           2       0.14      0.01      0.02       100
+           3       0.00      0.00      0.00       100
+           4       0.25      0.01      0.02       100
+           5       0.00      0.00      0.00       100
+           6       0.19      0.80      0.31       100
+           7       0.00      0.00      0.00       100
+           8       0.13      0.11      0.12       100
+
+    accuracy                           0.18       900
+   macro avg       0.13      0.18      0.10       900
+weighted avg       0.13      0.18      0.10       900

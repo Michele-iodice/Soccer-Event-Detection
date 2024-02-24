@@ -12,8 +12,7 @@ epochs = 20
 image_reshape = (224, 224)
 num_classes = 9
 learning_rate = 0.0001
-clipping_value=2.0
-# l2 = 0.01
+#clipping_value=2.0
 
 # Encoder
 encoder_inputs = keras.Input(shape=(224, 224, 3), name="encoder_inputs")
@@ -134,7 +133,7 @@ def vae_loss(y_true, y_pred):
 
 
 # Compile the model
-optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, clipvalue=clipping_value)
+optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 vae.compile(optimizer=optimizer,
             loss=vae_loss,
             metrics=[vae_loss])
@@ -178,7 +177,7 @@ print(f"start evaluation")
 eval_result = vae.evaluate(x_test, x_test)
 print("Test Loss:", eval_result)
 
-vae.save("../scripts/models/vae/vae_model.keras")
+tf.saved_model.save(vae, "models/vae/vae_model3")
 now = datetime.datetime.now()
 
 # Plot training history
@@ -190,5 +189,5 @@ plt.plot(epochs, val_loss, label='Validation Loss')
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.legend()
-plt.savefig("../scripts/models/vae/fig/vae_loss_report".format(now))
+plt.savefig("../scripts/models/vae/fig/vae_loss_report_5500samples".format(now))
 plt.show()

@@ -182,7 +182,7 @@ predictions = (prediction[0] + prediction[1]) / 2
 y_predict = np.argmax(predictions, axis=1)
 y_true = np.argmax(y_test, axis=1)
 
-fgc_model.save("../scripts/models/fgc/fgc_model.keras")
+tf.saved_model.save(fgc_model, "models/fgc/fgc_model3")
 
 # Confusion Matrix
 conf_matrix = confusion_matrix(y_true, y_predict)
@@ -206,7 +206,7 @@ plt.title('model_with_MAMC accuracy')
 plt.ylabel('accuracy')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
-plt.savefig("../scripts/models/fgc/fig/fine_grain_classifier_history.png".format(now))
+plt.savefig("../scripts/models/fgc/fig/fine_grain_classifier_history_5500samples.png".format(now))
 plt.show()
 
 # loss
@@ -219,18 +219,18 @@ plt.title('model_with_MAMC loss')
 plt.ylabel('loss')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
-plt.savefig("../scripts/models/fgc/fig/fine_grain_classifier_loss.png".format(now))
+plt.savefig("../scripts/models/fgc/fig/fine_grain_classifier_loss_5500samples.png".format(now))
 plt.show()
 
 # Plot the confusion matrix
-plt.figure(figsize=(num_classes, num_classes))
+plt.figure(figsize=(5, 5))
 commands = ["Red-Cards", "Yellow-Cards"]
 commands = np.asarray(commands)
 sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=commands, yticklabels=commands)
 plt.title('Confusion Matrix')
 plt.xlabel('Predicted Label')
 plt.ylabel('True Label')
-plt.savefig("../scripts/models/ic/fig/fine_grain_classifier_confusion_matrix.png".format(now))
+plt.savefig("../scripts/models/fgc/fig/fine_grain_classifier_confusion_matrix_5500samples.png".format(now))
 plt.show()
 
 # Print classification report

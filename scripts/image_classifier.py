@@ -84,7 +84,7 @@ y_predict = np.argmax(prediction, axis=1)
 y_true = np.argmax(y_test, axis=1)
 
 # save the model
-ic_model.save("../scripts/models/ic/ic_model.keras")
+tf.saved_model.save(ic_model, "models/ic/ic_model3")
 
 
 # Confusion Matrix
@@ -109,7 +109,7 @@ plt.plot(epochs, val_loss, label='Validation Loss')
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.legend()
-plt.savefig("../scripts/models/ic/fig/image_classifier_history.png".format(now))
+plt.savefig("../scripts/models/ic/fig/image_classifier_history_5500samples.png".format(now))
 plt.show()
 
 # Plot the confusion matrix
@@ -120,7 +120,7 @@ sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=commands
 plt.title('Confusion Matrix')
 plt.xlabel('Predicted Label')
 plt.ylabel('True Label')
-plt.savefig("../scripts/models/ic/fig/image_classifier_confusion_matrix.png".format(now))
+plt.savefig("../scripts/models/ic/fig/image_classifier_confusion_matrix_5500samples.png".format(now))
 plt.show()
 
 # Print classification report
